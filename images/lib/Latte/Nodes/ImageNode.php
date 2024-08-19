@@ -25,7 +25,8 @@ class ImageNode extends StatementNode
 
         foreach ($args as $item) {
             if ($item->key === null) {
-                $item->key = new IdentifierNode('field');
+                $item->key = new IdentifierNode('image');
+                break;
             }
         }
 

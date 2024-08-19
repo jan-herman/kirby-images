@@ -2,8 +2,6 @@
 
 namespace JanHerman\Images;
 
-use Kirby\Cms\File;
-
 // Variable naming:
 // string $breakpoint_name = 'sm', 'md' etc.
 // int $breakpoint = 1024
@@ -18,7 +16,6 @@ class Sizes
     private array $sizes_array = [];
 
     public function __construct(
-        public File|null $file                  = null,
         public int|null $width                  = null,
         public int|null $height                 = null,
         public float|null $ratio                = null,
@@ -35,12 +32,6 @@ class Sizes
         // set container default state
         if ($this->container === null) {
             $this->container = option('jan-herman.images.grid.container');
-        }
-
-        // set image dimensions from file if provided
-        if ($this->file) {
-            $this->width  = $this->file->width();
-            $this->height = $this->file->height();
         }
 
         // add default breakpoint
@@ -68,7 +59,7 @@ class Sizes
         }
 
         $file_ratio = $this->width / $this->height;
-        $correction = $file_ratio / (100 / $this->ratio);
+        $correction = $file_ratio / $this->ratio;
 
         if ($correction < 1) {
             return;
