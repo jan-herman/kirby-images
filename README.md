@@ -7,6 +7,7 @@
 - [ ] cache expensive aspect ratio calculations?
 
 #### v2.0
+- [ ] calculate object-position in css instead of php?
 - [ ] add support for native lazy loadign and other libraries (currently only `lazysizes` is supported)
 - [ ] set legacyAspectRatio to false by default
 - [ ] remove `ratioPercentage` file and asset method

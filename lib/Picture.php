@@ -275,7 +275,7 @@ class Picture
                 return '';
             }
 
-            return '--aspect-ratio: ' . $aspect_ratio . '%;';
+            return '--aspect-ratio: ' . round($aspect_ratio, 4) . '%;';
         }
 
         // standard
@@ -285,7 +285,7 @@ class Picture
             return '';
         }
 
-        return 'aspect-ratio: ' . $aspect_ratio;
+        return 'aspect-ratio: ' . round($aspect_ratio, 4);
     }
 
     /**
