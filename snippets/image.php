@@ -9,7 +9,7 @@ if ($file === __FILE__) {
 
 // $image
 if (isset($image)) {
-    if ($image instanceof Kirby\Content\Field) { // field
+    if ($image instanceof Kirby\Content\Field && $image->isNotEmpty()) { // field
         $field = $image;
     } elseif ($image instanceof Kirby\Cms\File) { // file
         $file = $image;
@@ -26,6 +26,10 @@ if (isset($image)) {
         }
         $asset = asset($path);
     }
+}
+
+if (!isset($field) && !isset($file) && !isset($asset)) {
+    return;
 }
 
 // crop - deprecated (will be removed in v2.0)
