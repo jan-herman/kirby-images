@@ -427,6 +427,7 @@ class Picture
     {
         if ($this->lazy) {
             $attributes = [
+                'class'            => 'lazyload',
                 'data-src'         => $this->getSrc(),
                 'data-srcset'      => $this->thumb || $this->isSvg() ? null : $this->getSrcset(),
                 'sizes'            => 'auto',
