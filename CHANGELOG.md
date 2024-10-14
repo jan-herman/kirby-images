@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.2.0] - 2024-10-14
+### Added
+- LQIP support
+
+
 ## [1.1.0] - 2024-08-19
 ### Added
 - support for Asset
@@ -19,6 +24,7 @@
 
 ### Fixed
 - object-position calculation
+- missing `lazyload` class
 
 ### Removed
 - kirby-barista dependency

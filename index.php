@@ -21,7 +21,12 @@ Kirby::plugin('jan-herman/images', [
                 'sm' => 768,
                 'xs' => 576
             ],
-        ]
+        ],
+        'lqip' => [
+            'maxSize' => 16,
+            'blurRadius' => 1,
+            'quality' => 40,
+        ],
     ],
     'snippets' => [
         'image' => __DIR__ . '/snippets/image.php'

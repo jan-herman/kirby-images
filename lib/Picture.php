@@ -11,6 +11,7 @@ use Kirby\Toolkit\Html;
 class Picture
 {
     private AspectRatio $aspect_ratio;
+    private array $object_position;
 
     /**
      * Picture constructor.
@@ -148,6 +149,24 @@ class Picture
         }
 
         return 0;
+    }
+
+    /**
+     * Get LQIP data URI
+     *
+     * @return string|null
+     */
+    private function getLqipSrc(): string|null
+    {
+        if ($this->file) {
+            return new Lqip($this->file, $this->thumb);
+        }
+
+        if ($this->asset) {
+            return new Lqip($this->asset, $this->thumb);
+        }
+
+        return null;
     }
 
     /**
@@ -308,19 +327,24 @@ class Picture
     }
 
     /**
-     * Get the object position style
+     * Get the object position
      *
-     * @return string
+     * @return array
      */
-    private function getObjectPositionStyle(): string
+    private function getObjectPosition(): array
     {
+        if (isset($this->object_position)) {
+            return $this->object_position;
+        }
+
         $focus = $this->getFocus();
         $container_ratio = $this->aspect_ratio->get();
         $image_width = $this->getWidth();
         $image_height = $this->getHeight();
 
         if ($this->ratio === 'auto' || $focus === null || $container_ratio === null || $image_width === 0 || $image_height === 0) {
-            return '';
+            $this->object_position = [];
+            return $this->object_position;
         }
 
         $image_ratio = $this->getWidth() / $this->getHeight();
@@ -328,7 +352,8 @@ class Picture
         $focus_y = $focus[1];
 
         if ($image_ratio === $container_ratio) {
-            return '';
+            $this->object_position = [];
+            return $this->object_position;
         }
 
         $object_position_x = $focus_x * 100;
@@ -358,7 +383,57 @@ class Picture
         $object_position_x = max(0, min(100, $object_position_x));
         $object_position_y = max(0, min(100, $object_position_y));
 
-        return 'object-position: ' . round($object_position_x, 4) . '% ' . round($object_position_y, 4) . '%;';
+        $this->object_position = [
+            $object_position_x,
+            $object_position_y
+        ];
+
+        return $this->object_position;
+    }
+
+    /**
+     * Get the object position style
+     *
+     * @return string
+     */
+    private function getObjectPositionStyle(): string
+    {
+        $object_position = $this->getObjectPosition();
+
+        if (!$object_position) {
+            return '';
+        }
+
+        return 'object-position: ' . round($object_position[0], 4) . '% ' . round($object_position[1], 4) . '%;';
+    }
+
+    /**
+     * Get the LQIP background style
+     *
+     * @return string
+     */
+    private function getLqipBackgroundStyle(): string
+    {
+        if (!$this->lazy || option('jan-herman.images.lqip') === false) {
+            return '';
+        }
+
+        $lqip_src = $this->getLqipSrc();
+
+        if (!$lqip_src) {
+            return '';
+        }
+
+        $style = 'background-image: url(\'' . $lqip_src . '\');';
+
+        $object_position = $this->getObjectPosition();
+        if ($object_position) {
+            $object_position_x = round($object_position[0], 4);
+            $object_position_y = round($object_position[1], 4);
+            $style .= 'background-position: ' . $object_position_x . '% ' . $object_position_y . '%;';
+        }
+
+        return $style;
     }
 
     /**
@@ -393,7 +468,7 @@ class Picture
         $attributes = [
            'class'          => $this->getClass(),
            'data-extension' => $this->getExtension(),
-           'style'          => $this->getAspectRatioStyle()
+           'style'          => $this->getAspectRatioStyle() . $this->getLqipBackgroundStyle()
         ];
 
         return array_merge(array_filter($attributes), $this->attr);
