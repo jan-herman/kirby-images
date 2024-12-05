@@ -49,7 +49,7 @@ class Sizes
 
     public function __toString()
     {
-        return $this->render();
+        return $this->renderToString();
     }
 
     private function setRatioCorrection(): void
@@ -240,7 +240,7 @@ class Sizes
         return round(100 * $size * $this->ratio_correction, 2, PHP_ROUND_HALF_UP) . 'vw';
     }
 
-    public function render(): string
+    public function renderToString(): string
     {
         $this->setRatioCorrection();
         $this->setContainerWidth();
@@ -255,5 +255,10 @@ class Sizes
         }
 
         return implode(', ', $parts);
+    }
+
+    public function render(): void
+    {
+        echo $this->renderToString();
     }
 }

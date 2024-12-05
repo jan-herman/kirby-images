@@ -53,6 +53,7 @@ $picture = new Picture(
     container: $container ?? null,
     focus: $focus ?? null,
     attr: $attr ?? [],
+    img_attr: $img_attr ?? [],
     class: $class ?? ''
 );
 

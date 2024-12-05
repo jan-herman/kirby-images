@@ -1,5 +1,18 @@
 # Changelog
 
+## [1.3.0] - 2024-10-22
+### Changed
+- jpg fallback markup
+    - remove unnecessary attributes from img tag
+- code refactoring
+
+### Fixed
+- missing Lazysizes' parent-fit plugin implementation
+- missing `data-sizes="auto"` attribute on lazyloaded images
+- incorrect `data-aspectratio` attribute on lazyloaded images (container ratio instead of image ratio)
+- missing default $options parametr in `$image->thumbWebp()` helper method
+
+
 ## [1.2.0] - 2024-10-14
 ### Added
 - LQIP support

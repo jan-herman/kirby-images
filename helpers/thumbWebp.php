@@ -4,7 +4,7 @@ use Kirby\Cms\File;
 use Kirby\Cms\FileVersion;
 use Kirby\Filesystem\Asset;
 
-return function (array|string|null $options): FileVersion|File|Asset {
+return function (array|string|null $options = null): FileVersion|File|Asset {
     if (empty($options) === true) {
         $options = $this->kirby()->option('thumbs.presets.default');
     } elseif (is_string($options) === true) {

@@ -3,19 +3,19 @@
 namespace JanHerman\Images;
 
 use Kirby\Cms\File;
-use Kirby\Filesystem\Asset;
 use Kirby\Cms\FileVersion;
+use Kirby\Filesystem\Asset;
 
 class Lqip
 {
     private FileVersion $thumb;
 
-     /**
-     * Lqip constructor.
-     *
-     * @param File|Asset $file The original file or asset to generate a LQIP for.
-     * @param string|array|null $options Options for generating the thumbnail. Can be a string preset or an array of options.
-     */
+    /**
+    * Lqip constructor.
+    *
+    * @param File|Asset $file The original file or asset to generate a LQIP for.
+    * @param string|array|null $options Options for generating the thumbnail. Can be a string preset or an array of options.
+    */
     public function __construct(
         private File|Asset $file,
         private string|array|null $options = null,

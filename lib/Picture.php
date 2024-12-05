@@ -11,7 +11,8 @@ use Kirby\Toolkit\Html;
 class Picture
 {
     private AspectRatio $aspect_ratio;
-    private array $object_position;
+    private string $sizes_cache;
+    private array $object_position_cache;
 
     /**
      * Picture constructor.
@@ -49,6 +50,7 @@ class Picture
         private int|string|bool|null $container = null,
         private array|null $focus               = null,
         private array $attr                     = [],
+        private array $img_attr                 = [],
         private string $class                   = ''
     ) {
         // set file from field
@@ -333,8 +335,8 @@ class Picture
      */
     private function getObjectPosition(): array
     {
-        if (isset($this->object_position)) {
-            return $this->object_position;
+        if (isset($this->object_position_cache)) {
+            return $this->object_position_cache;
         }
 
         $focus = $this->getFocus();
@@ -343,8 +345,8 @@ class Picture
         $image_height = $this->getHeight();
 
         if ($this->ratio === 'auto' || $focus === null || $container_ratio === null || $image_width === 0 || $image_height === 0) {
-            $this->object_position = [];
-            return $this->object_position;
+            $this->object_position_cache = [];
+            return $this->object_position_cache;
         }
 
         $image_ratio = $this->getWidth() / $this->getHeight();
@@ -352,8 +354,8 @@ class Picture
         $focus_y = $focus[1];
 
         if ($image_ratio === $container_ratio) {
-            $this->object_position = [];
-            return $this->object_position;
+            $this->object_position_cache = [];
+            return $this->object_position_cache;
         }
 
         $object_position_x = $focus_x * 100;
@@ -383,12 +385,12 @@ class Picture
         $object_position_x = max(0, min(100, $object_position_x));
         $object_position_y = max(0, min(100, $object_position_y));
 
-        $this->object_position = [
+        $this->object_position_cache = [
             $object_position_x,
             $object_position_y
         ];
 
-        return $this->object_position;
+        return $this->object_position_cache;
     }
 
     /**
@@ -414,7 +416,7 @@ class Picture
      */
     private function getLqipBackgroundStyle(): string
     {
-        if (!$this->lazy || option('jan-herman.images.lqip') === false) {
+        if ($this->lazy === false || option('jan-herman.images.lqip') === false) {
             return '';
         }
 
@@ -439,15 +441,20 @@ class Picture
     /**
      * Get the sizes attribute
      *
-     * @return Sizes|null
+     * @return string
      */
-    private function getSizes(): Sizes|null
+    private function getSizes(): string
     {
-        if (!$this->sizes && !$this->container) {
-            return null;
+        if (isset($this->sizes_cache)) {
+            return $this->sizes_cache;
         }
 
-        return new Sizes(
+        if (!$this->sizes && !$this->container) {
+            $this->sizes_cache = '';
+            return $this->sizes_cache;
+        }
+
+        $sizes = new Sizes(
             width: $this->getWidth(),
             height: $this->getHeight(),
             ratio: $this->aspect_ratio->get(),
@@ -456,73 +463,89 @@ class Picture
             classes: is_string($this->sizes) ? $this->sizes : null,
             sizes: is_array($this->sizes) ? $this->sizes : null,
         );
+
+        $this->sizes_cache = $sizes->renderToString();
+
+        return $this->sizes_cache;
     }
 
     /**
-     * Get <picture> attributes
+     * Get <source> tag
      *
-     * @return array
+     * @return string
      */
-    private function getAttributes(): array
+    private function getSourceTag(): string
     {
-        $attributes = [
-           'class'          => $this->getClass(),
-           'data-extension' => $this->getExtension(),
-           'style'          => $this->getAspectRatioStyle() . $this->getLqipBackgroundStyle()
-        ];
+        if ($this->as !== 'picture' || $this->isSvg()) {
+            return '';
+        }
 
-        return array_merge(array_filter($attributes), $this->attr);
-    }
-
-    /**
-     * Get <source> attributes
-     *
-     * @return array
-     */
-    private function getSourceAttributes(): array
-    {
         $srcset = $this->thumb ? $this->getSrcWebp() : $this->getSrcsetWebp();
 
-        $attributes = [
-            'srcset'          => $this->lazy ? null : $srcset,
-            'data-srcset'     => $this->lazy ? $srcset : null,
-            'data-aspectratio' => $this->lazy && $this->ratio !== 'auto' ? $this->aspect_ratio->get() : null,
-            'type'            => 'image/webp',
-        ];
+        if ($srcset === null) {
+            return '';
+        }
 
-        return array_filter($attributes);
-    }
-
-    /**
-     * Get <img> attributes
-     *
-     * @return array
-     */
-    private function getImageAttributes(): array
-    {
-        if ($this->lazy) {
+        if ($this->lazy === true) {
             $attributes = [
-                'class'            => 'lazyload',
-                'data-src'         => $this->getSrc(),
-                'data-srcset'      => $this->thumb || $this->isSvg() ? null : $this->getSrcset(),
-                'sizes'            => 'auto',
-                'data-aspectratio' => $this->ratio !== 'auto' ? $this->aspect_ratio->get() : null,
-                'style'            => $this->getObjectPositionStyle()
+                'data-srcset'      => $srcset,
+                'data-sizes'       => 'auto',
+                'data-aspectratio' => $this->aspect_ratio->getIntrinsic(),
+                'data-parent-fit'  => $this->object_fit,
+                'type'             => 'image/webp',
             ];
         } else {
             $attributes = [
-                'src'             => $this->getSrc(),
-                'srcset'          => $this->thumb || $this->isSvg() ? null : $this->getSrcset(),
-                'sizes'           => $this->getSizes(),
-                'style'           => $this->getObjectPositionStyle()
+                'srcset'           => $srcset,
+                'sizes'            => $this->getSizes(),
+                'type'             => 'image/webp',
             ];
         }
 
         $attributes = array_filter($attributes);
 
+        return Html::tag('source', null, $attributes);
+    }
+
+    /**
+     * Get <img> tag
+     *
+     * @return string
+     */
+    private function getImgTag(): string
+    {
+        if ($this->lazy === true) {
+            $attributes = [
+                'class'      => 'lazyload',
+                'data-src'   => $this->getSrc(),
+                'data-sizes' => 'auto',
+                'style'      => $this->getObjectPositionStyle()
+            ];
+        } else {
+            $attributes = [
+                'src'        => $this->getSrc(),
+                'style'      => $this->getObjectPositionStyle()
+            ];
+        }
+
+        if ($this->as !== 'picture') {
+            $srcset = $this->thumb || $this->isSvg() ? null : $this->getSrcset();
+
+            if ($this->lazy === true) {
+                $attributes['data-srcset']      = $srcset;
+                $attributes['data-aspectratio'] = $this->aspect_ratio->getIntrinsic();
+                $attributes['data-parent-fit']  = $$this->object_fit;
+            } else {
+                $attributes['srcset'] = $srcset;
+                $attributes['sizes']  = $this->getSizes();
+            }
+        }
+
+        $attributes = array_merge(array_filter($attributes), $this->img_attr);
+
         $attributes['alt'] = $this->getAlt();
 
-        return $attributes;
+        return Html::tag('img', null, $attributes);
     }
 
     /**
@@ -536,17 +559,18 @@ class Picture
             return '';
         }
 
-        $source = '';
-        if ($this->as === 'picture' && !$this->isSvg()) {
-            $source_attributes = $this->getSourceAttributes();
-            if (!empty($source_attributes['srcset']) || !empty($source_attributes['data-srcset'])) {
-                $source = Html::tag('source', null, $source_attributes);
-            }
-        }
-        $image = Html::tag('img', null, $this->getImageAttributes());
-        $picture = Html::tag($this->as, [$source, $image], $this->getAttributes());
+        $source_tag = $this->getSourceTag();
+        $img_tag    = $this->getImgTag();
 
-        return $picture;
+        $attributes = [
+            'class'          => $this->getClass(),
+            'data-extension' => $this->getExtension(),
+            'style'          => $this->getAspectRatioStyle() . $this->getLqipBackgroundStyle()
+        ];
+
+        $attributes = array_merge(array_filter($attributes), $this->attr);
+
+        return Html::tag($this->as, [$source_tag, $img_tag], $attributes);
     }
 
     /**
