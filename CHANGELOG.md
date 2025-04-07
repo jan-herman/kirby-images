@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.3.1] - 2025-04-07
+### Fixed
+- disabled lqip generation for svg images
+
+
 ## [1.3.0] - 2024-10-22
 ### Changed
 - jpg fallback markup

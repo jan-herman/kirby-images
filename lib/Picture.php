@@ -416,7 +416,7 @@ class Picture
      */
     private function getLqipBackgroundStyle(): string
     {
-        if ($this->lazy === false || option('jan-herman.images.lqip') === false) {
+        if ($this->lazy === false || option('jan-herman.images.lqip') === false || $this->isSvg()) {
             return '';
         }
 
