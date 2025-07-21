@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.4.0] - 2025-07-21
+### Added
+- Kirby 5 compatibility
+
+
 ## [1.3.1] - 2025-04-07
 ### Fixed
 - disabled lqip generation for svg images
