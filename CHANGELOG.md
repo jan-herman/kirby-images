@@ -1,5 +1,10 @@
 # Changelog
 
+## [1.5.0] - 2026-02-10
+### Added
+- image snippet now also accepts `Kirby\Filesystem\Asset` as first argument
+
+
 ## [1.4.0] - 2025-07-21
 ### Added
 - Kirby 5 compatibility

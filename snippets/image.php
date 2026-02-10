@@ -13,6 +13,8 @@ if (isset($image)) {
         $field = $image;
     } elseif ($image instanceof Kirby\Cms\File) { // file
         $file = $image;
+    } elseif ($image instanceof Kirby\Filesystem\Asset) { // asset
+        $asset = $image;
     } elseif (is_string($image)) { // asset path
         $path = $image;
         // process path aliases if barista is loaded
