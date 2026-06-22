@@ -8,46 +8,74 @@ use Kirby\Filesystem\Asset;
 
 class Lqip
 {
-    private FileVersion $thumb;
+    private FileVersion|File|Asset $thumb;
 
     /**
     * Lqip constructor.
     *
     * @param File|Asset $file The original file or asset to generate a LQIP for.
     * @param string|array|null $options Options for generating the thumbnail. Can be a string preset or an array of options.
+    * @param int $maxSize
+    * @param int $blurRadius
+    * @param int $quality
     */
     public function __construct(
         private File|Asset $file,
         private string|array|null $options = null,
+        private int $maxSize = 16,
+        private int $blurRadius = 1,
+        private int $quality = 40,
     ) {
-        $options = $this->options;
+        $baseOptions = $this->resolveOptions($this->options);
+        $lqipOptions = $this->lqipOptions($baseOptions);
 
-        if (empty($options) === true) {
-            $options = option('thumbs.presets.default');
-        } elseif (is_string($options) === true) {
-            $options = option('thumbs.presets.' . $options);
+        $this->thumb = $this->file->thumb(array_merge($baseOptions, $lqipOptions));
+    }
+
+    private function resolveOptions(string|array|null $options): array
+    {
+        if (is_array($options)) {
+            return $options;
         }
 
-        $max_size = option('jan-herman.images.lqip.maxSize', 16);
-        $quality = option('jan-herman.images.lqip.quality', 40);
+        if (is_string($options)) {
+            $preset = option('thumbs.presets.' . $options);
 
-        $lqip_options = [
+            return is_array($preset) ? $preset : [];
+        }
+
+        $preset = option('thumbs.presets.default');
+
+        return is_array($preset) ? $preset : [];
+    }
+
+    private function lqipOptions(array $options): array
+    {
+        $lqipOptions = [
             'format' => 'webp',
-            'quality' => $quality
+            'quality' => $this->quality,
+            'profiles' => [],
         ];
 
-        if (isset($options['width']) && isset($options['height'])) {
-            $lqip_options['width'] = $max_size;
-            $lqip_options['height'] = round($max_size / $options['width'] * $options['height']);
+        if ($this->hasValidDimensions($options)) {
+            $lqipOptions['width'] = $this->maxSize;
+            $lqipOptions['height'] = round($this->maxSize / $options['width'] * $options['height']);
         } elseif (isset($options['height'])) {
-            $lqip_options['height'] = $max_size;
+            $lqipOptions['height'] = $this->maxSize;
         } else {
-            $lqip_options['width'] = $max_size;
+            $lqipOptions['width'] = $this->maxSize;
         }
 
-        $options = array_merge($options, $lqip_options);
+        return $lqipOptions;
+    }
 
-        $this->thumb = $this->file->thumb($options);
+    private function hasValidDimensions(array $options): bool
+    {
+        return isset($options['width'], $options['height']) &&
+            is_numeric($options['width']) &&
+            is_numeric($options['height']) &&
+            $options['width'] > 0 &&
+            $options['height'] > 0;
     }
 
     /**
@@ -67,8 +95,55 @@ class Lqip
      */
     private function hasAlphaChannel(): bool
     {
-        // Create a GD image from the thumbnail
+        return $this->hasAlphaChannelWithImagick() ?? $this->hasAlphaChannelWithGd();
+    }
+
+    private function hasAlphaChannelWithImagick(): ?bool
+    {
+        if (!extension_loaded('imagick')) {
+            return null;
+        }
+
+        try {
+            $image = new \Imagick();
+            $image->readImageBlob($this->thumb->read());
+
+            if (!$image->getImageAlphaChannel()) {
+                $image->clear();
+                $image->destroy();
+
+                return false;
+            }
+
+            if (!method_exists($image, 'getImageChannelRange')) {
+                $image->clear();
+                $image->destroy();
+
+                return null;
+            }
+
+            $range = $image->getImageChannelRange(\Imagick::CHANNEL_ALPHA);
+            $quantumRange = $image->getQuantumRange();
+            $max = is_array($quantumRange) ? ($quantumRange['quantumRangeLong'] ?? max($quantumRange)) : $quantumRange;
+
+            $image->clear();
+            $image->destroy();
+
+            return isset($range['minima']) && $range['minima'] < $max;
+        } catch (\Throwable) {
+            return null;
+        }
+    }
+
+    private function hasAlphaChannelWithGd(): bool
+    {
+        // Create a GD image from the thumbnail.
         $image = imagecreatefromstring($this->thumb->read());
+
+        if (!$image) {
+            return false;
+        }
+
         $width = imagesx($image);
         $height = imagesy($image);
 
@@ -153,11 +228,19 @@ class Lqip
     /**
      * Returns the thumbnail generated from the original file.
      *
-     * @return Kirby\Cms\FileVersion The thumbnail object.
+     * @return FileVersion|File|Asset The thumbnail object.
      */
-    public function toThumb(): FileVersion
+    public function toThumb(): FileVersion|File|Asset
     {
         return $this->thumb;
+    }
+
+    /**
+     * Returns the thumbnail url.
+     */
+    public function toUrl(): string
+    {
+        return $this->thumb->url();
     }
 
     /**
@@ -166,10 +249,10 @@ class Lqip
      * @param int|null $blur_radius The radius of the blur to be applied. If null, uses the default option.
      * @return string The data URI for the low-quality image placeholder.
      */
-    public function toDataUri(int $blur_radius = null): string
+    public function toDataUri(?int $blur_radius = null): string
     {
         $uri = $this->thumb->dataUri();
-        $blur_radius = $blur_radius ?? option('jan-herman.images.lqip.blurRadius');
+        $blur_radius = $blur_radius ?? $this->blurRadius;
 
         if ($blur_radius !== 0) {
             $svg = $this->svgFilter($uri, $blur_radius);

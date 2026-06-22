@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.0.0] - 2026-06-22
+### Changed
+- complete rewrite of the plugin
+
+
 ## [1.5.0] - 2026-02-10
 ### Added
 - image snippet now also accepts `Kirby\Filesystem\Asset` as first argument

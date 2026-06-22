@@ -38,7 +38,7 @@ class ImageNode extends StatementNode
     public function print(PrintContext $context): string
     {
         return $context->format(
-            'snippet(\'image\', %node) %line;',
+            'picture(%node) %line;',
             $this->args,
             $this->position
         );

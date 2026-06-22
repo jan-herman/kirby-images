@@ -1,7 +1,7 @@
 {
     "name": "jan-herman/kirby-images",
     "description": "Opinionated set of Kirby snippets and utilities for serving highly optimized versions of images.",
-    "version": "1.5.0",
+    "version": "2.0.0",
     "type": "kirby-plugin",
     "license": "MIT",
     "homepage": "https://github.com/jan-herman/kirby-images",
@@ -14,7 +14,6 @@
     ],
     "require": {
         "php": "^8.1",
-        "getkirby/cms": "^4.0 || ^5.0",
         "getkirby/composer-installer": "^1.2"
     },
     "extra": {
@@ -25,7 +24,7 @@
     },
     "autoload": {
         "psr-4": {
-            "JanHerman\\Images\\": "lib/"
+            "JanHerman\\Images\\": "classes/"
         }
     }
 }
