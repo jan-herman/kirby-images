@@ -185,7 +185,7 @@ class Image
      */
     public function __call(string $name, array $arguments): mixed
     {
-        return $this->fileOrAsset()->$name(...$arguments);
+        return $this->source()->$name(...$arguments);
     }
 
     /**
@@ -233,13 +233,13 @@ class Image
      */
     public function hasSource(): bool
     {
-        return $this->file !== null || $this->asset !== null;
+        return $this->isFile() || $this->isAsset();
     }
 
     /**
-     * Returns the resolved file or asset.
+     * Returns the resolved source file or asset.
      */
-    public function fileOrAsset(): File|Asset
+    public function source(): File|Asset
     {
         if ($this->file !== null) {
             return $this->file;
@@ -250,6 +250,40 @@ class Image
         }
 
         throw new \LogicException('[kirby-images] No image source could be resolved.');
+    }
+
+    /**
+     * Returns the intended thumbnail width without generating the thumb.
+     */
+    public function width(): int
+    {
+        $options = $this->thumbOptions();
+        $width = is_array($options) ? ($options['width'] ?? null) : null;
+
+        if (is_numeric($width)) {
+            return (int) round((float) $width);
+        }
+
+        $height = is_array($options) ? ($options['height'] ?? null) : null;
+
+        return is_numeric($height) ? (int) round((float) $height * $this->ratio()) : $this->source()->width();
+    }
+
+    /**
+     * Returns the intended thumbnail height without generating the thumb.
+     */
+    public function height(): int
+    {
+        $options = $this->thumbOptions();
+        $height = is_array($options) ? ($options['height'] ?? null) : null;
+
+        if (is_numeric($height)) {
+            return (int) round((float) $height);
+        }
+
+        $width = is_array($options) ? ($options['width'] ?? null) : null;
+
+        return is_numeric($width) ? (int) round((float) $width / $this->ratio()) : $this->source()->height();
     }
 
     /**
@@ -273,7 +307,7 @@ class Image
      */
     public function isCropped(): bool
     {
-        $options = $this->thumbOptions($this->fallbackFormat());
+        $options = $this->thumbOptions();
 
         return ($options['crop'] ?? false) !== false;
     }
@@ -432,9 +466,7 @@ class Image
      */
     public function thumb(?string $format = null): FileVersion|File|Asset
     {
-        $format ??= $this->fallbackFormat();
-
-        return $this->fileOrAsset()->thumb($this->thumbOptions($format));
+        return $this->source()->thumb($this->thumbOptions($format));
     }
 
     /**
@@ -442,16 +474,24 @@ class Image
      */
     public function srcset(?string $format = null): ?string
     {
-        $format ??= $this->fallbackFormat();
-
-        return $this->fileOrAsset()->srcset($this->srcsetOptions($format));
+        return $this->source()->srcset($this->srcsetOptions($format));
     }
 
     /**
      * Combines thumb options with the requested format options.
      */
-    private function thumbOptions(string $format): array|string|null
+    public function thumbOptions(?string $format = null): array|string|null
     {
+        return $this->completeCropDimensions($this->resolvedThumbOptions($format));
+    }
+
+    /**
+     * Combines thumb options with the requested format options without completing crop dimensions.
+     */
+    private function resolvedThumbOptions(?string $format = null): array
+    {
+        $format ??= $this->fallbackFormat();
+
         $defaultOptions = option('thumbs.presets.default', []);
         $formatOptions = $this->formatOptions($format);
         $overrides = $this->option('thumb', []);
@@ -466,14 +506,16 @@ class Image
             $options = array_merge($defaultOptions, $formatOptions);
         }
 
-        return $this->completeCropDimensions($options);
+        return $options;
     }
 
     /**
      * Combines srcset sizes with the requested format options.
      */
-    private function srcsetOptions(string $format): array|string|null
+    public function srcsetOptions(?string $format = null): array|string|null
     {
+        $format ??= $this->fallbackFormat();
+
         $srcset = $this->option('srcset', 'default');
         $formatOptions = $this->formatOptions($format);
         $thumbOptions = $this->option('thumb', []);
@@ -534,10 +576,10 @@ class Image
 
         if ($width === null && $height === null) {
             if ($this->ratio() > $ratio) {
-                $options['height'] = $height = $this->height();
+                $options['height'] = $height = $this->source()->height();
                 $options['width'] = (int) round($height * $ratio);
             } else {
-                $options['width'] = $width = $this->width();
+                $options['width'] = $width = $this->source()->width();
                 $options['height'] = (int) round($width / $ratio);
             }
         } elseif ($width !== null && $height === null) {
@@ -666,11 +708,23 @@ class Image
     {
         $ratio = $this->option('ratio');
 
-        if (in_array($ratio, [null, false, 'auto', 'intrinsic'], true)) {
+        if (in_array($ratio, [false, 'auto', 'intrinsic'], true)) {
             return $this->ratio();
         }
 
-        return AspectRatio::standardize($ratio);
+        if ($ratio !== null) {
+            return AspectRatio::standardize($ratio);
+        }
+
+        $options = $this->resolvedThumbOptions();
+        $width = $options['width'] ?? null;
+        $height = $options['height'] ?? null;
+
+        if (is_numeric($width) && is_numeric($height) && $width > 0 && $height > 0) {
+            return (float) $width / (float) $height;
+        }
+
+        return $this->ratio();
     }
 
     /**

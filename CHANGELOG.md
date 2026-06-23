@@ -1,5 +1,14 @@
 # Changelog
 
+## [2.1.0] - 2026-06-23
+### Added
+- speed optimizations
+- placeholder caching
+
+### Changed
+- `Image::fileOrAsset` to `Image::source`
+
+
 ## [2.0.0] - 2026-06-22
 ### Changed
 - complete rewrite of the plugin

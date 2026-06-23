@@ -8,6 +8,8 @@ use Kirby\Filesystem\Asset;
 
 class Lqip
 {
+    public const CACHE_NAME = 'jan-herman.images.placeholder';
+
     private FileVersion|File|Asset $thumb;
 
     /**
@@ -18,6 +20,7 @@ class Lqip
     * @param int $maxSize
     * @param int $blurRadius
     * @param int $quality
+    * @param bool $cache
     */
     public function __construct(
         private File|Asset $file,
@@ -25,6 +28,7 @@ class Lqip
         private int $maxSize = 16,
         private int $blurRadius = 1,
         private int $quality = 40,
+        private bool $cache = true,
     ) {
         $baseOptions = $this->resolveOptions($this->options);
         $lqipOptions = $this->lqipOptions($baseOptions);
@@ -58,8 +62,16 @@ class Lqip
         ];
 
         if ($this->hasValidDimensions($options)) {
-            $lqipOptions['width'] = $this->maxSize;
-            $lqipOptions['height'] = round($this->maxSize / $options['width'] * $options['height']);
+            $width = (float) $options['width'];
+            $height = (float) $options['height'];
+
+            if ($width >= $height) {
+                $lqipOptions['width'] = $this->maxSize;
+                $lqipOptions['height'] = max(1, (int) round($this->maxSize / $width * $height));
+            } else {
+                $lqipOptions['height'] = $this->maxSize;
+                $lqipOptions['width'] = max(1, (int) round($this->maxSize / $height * $width));
+            }
         } elseif (isset($options['height'])) {
             $lqipOptions['height'] = $this->maxSize;
         } else {
@@ -250,6 +262,21 @@ class Lqip
      * @return string The data URI for the low-quality image placeholder.
      */
     public function toDataUri(?int $blur_radius = null): string
+    {
+        if ($this->cache === false) {
+            return $this->generateDataUri($blur_radius);
+        }
+
+        return kirby()->cache(self::CACHE_NAME)->getOrSet(
+            $this->thumb->id(),
+            fn () => $this->generateDataUri($blur_radius)
+        );
+    }
+
+    /**
+     * Generates the low-quality image placeholder without cache lookup.
+     */
+    private function generateDataUri(?int $blur_radius = null): string
     {
         $uri = $this->thumb->dataUri();
         $blur_radius = $blur_radius ?? $this->blurRadius;

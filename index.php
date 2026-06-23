@@ -1,6 +1,7 @@
 <?php
 
 use Kirby\Cms\App as Kirby;
+use Kirby\CLI\CLI;
 use Kirby\Image\Darkroom;
 use JanHerman\Images\Image;
 use JanHerman\Images\Lqip;
@@ -19,7 +20,7 @@ Kirby::plugin('jan-herman/images', [
         'lazyLoadingLibrary' => null,
         'placeholder' => [
             'enabled' => true,
-            'generator' => fn (Image $image): string => new Lqip($image->fileOrAsset(), $image->option('thumb'))->toDataUri(),
+            'generator' => fn (Image $image): string => new Lqip($image->source(), $image->thumbOptions())->toDataUri(),
         ],
         'sizes' => [
             'container' => true,
@@ -43,6 +44,21 @@ Kirby::plugin('jan-herman/images', [
         'images/img'              => __DIR__ . '/snippets/img.php',
         'images/img.lazysizes'    => __DIR__ . '/snippets/img.lazysizes.php',
         'images/img.unlazy'       => __DIR__ . '/snippets/img.unlazy.php',
+    ],
+    'commands' => [
+        'images:flush-placeholder-cache' => [
+            'description' => 'Flush cached LQIP image placeholders',
+            'command' => function (CLI $cli): void {
+                $cache = kirby()->cache(Lqip::CACHE_NAME);
+
+                if ($cache->flush()) {
+                    $cli->success('Image placeholder cache flushed.');
+                    return;
+                }
+
+                $cli->error('Could not flush image placeholder cache.');
+            }
+        ],
     ],
     'hooks' => [
         'jan-herman.barista.init:after' => function ($latte) {
