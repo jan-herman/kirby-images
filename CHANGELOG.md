@@ -1,5 +1,10 @@
 # Changelog
 
+## [2.1.1] - 2026-11-04
+### Added
+- Lazy-loaded images now use asynchronous decoding.
+
+
 ## [2.1.0] - 2026-06-23
 ### Added
 - speed optimizations

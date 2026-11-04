@@ -5,6 +5,7 @@
 use Kirby\Toolkit\Html;
 
 $attributes = $image->attrHelper([
+    'decoding' => 'async',
     ...$image->option('imgAttr', []),
     'class' => $image->option('tag') === 'img' ? $image->option('class') . ' lazyload' : 'lazyload',
     'data-src' => $image->thumb()->url(),

@@ -7,6 +7,7 @@ use Kirby\Toolkit\Html;
 $srcset = $image->hasImgSrcset() ? $image->srcset() : null;
 
 $attributes = $image->attrHelper([
+    'decoding' => $image->isLazy() ? 'async' : null,
     ...$image->option('imgAttr', []),
     'src' => $image->thumb()->url(),
     'srcset' => $srcset,

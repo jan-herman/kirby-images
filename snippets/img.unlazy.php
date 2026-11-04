@@ -5,6 +5,7 @@
 use Kirby\Toolkit\Html;
 
 $attributes = $image->attrHelper([
+    'decoding' => 'async',
     ...$image->option('imgAttr', []),
     'src' => $image->placeholder() ?: false,
     'data-src' => $image->thumb()->url(),
